@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PH Tariff Calculator — Bureau of Customs</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap');
+
+  :root {
+    --navy: #0a1628;
+    --navy2: #0f2040;
+    --blue: #1a3a6e;
+    --accent: #e8a020;
+    --accent2: #f5c842;
+    --gold: #c8851a;
+    --white: #f5f0e8;
+    --muted: #8896a8;
+    --border: rgba(232,160,32,0.2);
+    --card: rgba(15,32,64,0.9);
+    --success: #2ecc71;
+    --danger: #e74c3c;
+    --info: #3498db;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--navy);
+    color: var(--white);
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse 80% 60% at 50% -10%, rgba(26,58,110,0.6) 0%, transparent 70%),
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(232,160,32,0.04) 39px, rgba(232,160,32,0.04) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(232,160,32,0.04) 39px, rgba(232,160,32,0.04) 40px);
+  }
+
+  /* HEADER */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 32px;
+    background: rgba(10,22,40,0.95);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+    backdrop-filter: blur(12px);
+  }
+  .logo { display:flex; align-items:center; gap:14px; }
+  .logo-icon {
+    width:42px; height:42px;
+    background: linear-gradient(135deg, var(--accent), var(--gold));
+    border-radius: 10px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:20px;
+  }
+  .logo-text h1 { font-family:'Syne',sans-serif; font-size:17px; font-weight:800; color:var(--white); }
+  .logo-text p { font-size:11px; color:var(--muted); font-family:'DM Mono',monospace; letter-spacing:0.05em; }
+  .badge {
+    background: linear-gradient(135deg, var(--accent), var(--gold));
+    color: var(--navy);
+    font-size:10px; font-weight:700; font-family:'DM Mono',monospace;
+    padding: 4px 10px; border-radius:20px; letter-spacing:0.1em;
+  }
+
+  /* MAIN LAYOUT */
+  .container { max-width: 1100px; margin: 0 auto; padding: 32px 20px; }
+
+  .grid { display:grid; grid-template-columns: 1.2fr 1fr; gap: 24px; }
+  @media(max-width:820px){ .grid{ grid-template-columns:1fr; } }
+
+  /* CARDS */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    backdrop-filter: blur(8px);
+  }
+  .card-title {
+    font-family:'Syne',sans-serif; font-size:13px; font-weight:700;
+    letter-spacing:0.12em; text-transform:uppercase; color:var(--accent);
+    margin-bottom:20px; display:flex; align-items:center; gap:8px;
+  }
+  .card-title span { font-size:16px; }
+
+  /* FORM ELEMENTS */
+  .field { margin-bottom:16px; }
+  label {
+    display:block; font-size:11px; font-weight:500; color:var(--muted);
+    letter-spacing:0.08em; text-transform:uppercase; margin-bottom:6px;
+    font-family:'DM Mono',monospace;
+  }
+  input, select, textarea {
+    width:100%; padding:10px 14px;
+    background: rgba(10,22,40,0.8);
+    border: 1px solid rgba(232,160,32,0.25);
+    border-radius: 8px; color: var(--white);
+    font-family:'DM Sans',sans-serif; font-size:14px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline:none;
+  }
+  input:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(232,160,32,0.1);
+  }
+  select option { background: var(--navy2); }
+
+  .input-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+  /* HELP BUTTON */
+  .help-btn {
+    display:inline-flex; align-items:center; gap:6px;
+    background: none; border: 1px solid var(--border);
+    color: var(--muted); font-size:11px; font-family:'DM Mono',monospace;
+    padding:4px 10px; border-radius:20px; cursor:pointer;
+    transition: all 0.2s; margin-top:4px;
+    letter-spacing:0.05em;
+  }
+  .help-btn:hover { border-color:var(--accent); color:var(--accent); }
+  .help-panel {
+    display:none; margin-top:10px;
+    background: rgba(26,58,110,0.3);
+    border: 1px solid var(--border); border-radius:10px;
+    padding:14px; font-size:12px; line-height:1.7; color: #a8bbd0;
+  }
+  .help-panel.show { display:block; animation: fadeIn 0.2s ease; }
+  .help-panel strong { color: var(--accent2); }
+  .help-panel .formula {
+    font-family:'DM Mono',monospace; font-size:11px;
+    background: rgba(10,22,40,0.8); padding:8px 12px; border-radius:6px;
+    margin: 8px 0; border-left: 3px solid var(--accent);
+  }
+
+  /* CALCULATE BUTTON */
+  .calc-btn {
+    width:100%; padding:14px; margin-top:8px;
+    background: linear-gradient(135deg, var(--accent), var(--gold));
+    color: var(--navy); font-family:'Syne',sans-serif;
+    font-size:15px; font-weight:800; letter-spacing:0.05em;
+    border:none; border-radius:10px; cursor:pointer;
+    transition: transform 0.15s, box-shadow 0.2s;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .calc-btn:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(232,160,32,0.3); }
+  .calc-btn:active { transform:translateY(0); }
+
+  .reset-btn {
+    width:100%; padding:10px; margin-top:8px;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--muted); font-family:'DM Sans',sans-serif;
+    font-size:13px; border-radius:10px; cursor:pointer;
+    transition: all 0.2s;
+  }
+  .reset-btn:hover { border-color:var(--danger); color:var(--danger); }
+
+  /* RESULTS */
+  .results { display:none; }
+  .results.show { display:block; animation: slideUp 0.3s ease; }
+
+  .result-line {
+    display:flex; justify-content:space-between; align-items:center;
+    padding: 10px 0; border-bottom: 1px solid rgba(232,160,32,0.08);
+    font-size:14px;
+  }
+  .result-line:last-child { border-bottom:none; }
+  .result-label { color: var(--muted); font-size:12px; }
+  .result-value { font-family:'DM Mono',monospace; font-weight:500; }
+  .result-line.subtax .result-label { padding-left:14px; font-size:11px; color:#6a7d92; }
+  .result-line.subtax .result-value { font-size:12px; }
+
+  .total-box {
+    background: linear-gradient(135deg, rgba(232,160,32,0.12), rgba(200,133,26,0.08));
+    border: 1px solid var(--accent);
+    border-radius:12px; padding:16px 20px; margin-top:16px;
+  }
+  .total-box .t-label { font-size:11px; color:var(--accent); letter-spacing:0.1em; text-transform:uppercase; font-family:'DM Mono',monospace; }
+  .total-box .t-amount { font-family:'Syne',sans-serif; font-size:28px; font-weight:800; color:var(--accent2); margin-top:4px; }
+  .total-box .t-sub { font-size:11px; color:var(--muted); margin-top:4px; font-family:'DM Mono',monospace; }
+
+  .breakdown-toggle {
+    display:inline-flex; align-items:center; gap:6px;
+    background:none; border:1px solid var(--border);
+    color:var(--muted); font-size:11px; font-family:'DM Mono',monospace;
+    padding:5px 12px; border-radius:20px; cursor:pointer;
+    transition:all 0.2s; margin-top:14px; letter-spacing:0.05em;
+  }
+  .breakdown-toggle:hover { border-color:var(--info); color:var(--info); }
+  .breakdown-content { display:none; margin-top:12px; }
+  .breakdown-content.show { display:block; }
+
+  /* COMMODITY SEARCH */
+  .search-box {
+    position:relative;
+  }
+  .search-box input { padding-left:36px; }
+  .search-icon {
+    position:absolute; left:12px; top:50%; transform:translateY(-50%);
+    color:var(--muted); font-size:14px; pointer-events:none;
+  }
+  .suggestions {
+    position:absolute; top:100%; left:0; right:0; z-index:50;
+    background:var(--navy2); border:1px solid var(--border);
+    border-radius:8px; max-height:200px; overflow-y:auto;
+    display:none;
+  }
+  .suggestions.show { display:block; }
+  .suggestion-item {
+    padding:10px 14px; cursor:pointer; font-size:13px;
+    border-bottom:1px solid rgba(232,160,32,0.07);
+    transition:background 0.15s;
+  }
+  .suggestion-item:hover { background:rgba(232,160,32,0.08); }
+  .suggestion-item .hs { font-family:'DM Mono',monospace; font-size:10px; color:var(--accent); margin-right:8px; }
+  .suggestion-item .rate { font-family:'DM Mono',monospace; font-size:10px; color:var(--muted); float:right; }
+
+  /* RATE BADGE */
+  .rate-badge {
+    display:inline-flex; align-items:center; gap:6px;
+    background:rgba(232,160,32,0.1); border:1px solid var(--border);
+    padding:6px 12px; border-radius:8px; font-family:'DM Mono',monospace;
+    font-size:12px; color:var(--accent2); margin-top:6px;
+  }
+
+  /* INFO ROW */
+  .info-row {
+    display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:20px;
+  }
+  .info-box {
+    background:rgba(10,22,40,0.6); border:1px solid var(--border);
+    border-radius:10px; padding:12px; text-align:center;
+  }
+  .info-box .ib-val { font-family:'Syne',sans-serif; font-size:18px; font-weight:700; color:var(--accent2); }
+  .info-box .ib-label { font-size:10px; color:var(--muted); font-family:'DM Mono',monospace; letter-spacing:0.05em; margin-top:2px; }
+
+  /* SECTION DIVIDER */
+  .section-label {
+    font-size:10px; font-family:'DM Mono',monospace; color:var(--muted);
+    text-transform:uppercase; letter-spacing:0.1em;
+    display:flex; align-items:center; gap:8px; margin-bottom:14px; margin-top:4px;
+  }
+  .section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  /* TABS */
+  .tabs { display:flex; gap:4px; margin-bottom:20px; background:rgba(10,22,40,0.6); padding:4px; border-radius:10px; border:1px solid var(--border); }
+  .tab {
+    flex:1; padding:8px; text-align:center; font-size:12px; font-family:'DM Mono',monospace;
+    cursor:pointer; border-radius:7px; transition:all 0.2s; color:var(--muted); letter-spacing:0.04em;
+    border:none; background:none;
+  }
+  .tab.active { background:var(--accent); color:var(--navy); font-weight:700; }
+
+  .tab-content { display:none; }
+  .tab-content.active { display:block; }
+
+  /* ANIMATIONS */
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  @keyframes slideUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width:5px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+  /* STATUS TAG */
+  .status-tag {
+    display:inline-flex; align-items:center; gap:4px;
+    padding:3px 8px; border-radius:20px; font-size:10px; font-family:'DM Mono',monospace;
+    font-weight:600; letter-spacing:0.05em;
+  }
+  .status-tag.green { background:rgba(46,204,113,0.15); color:var(--success); border:1px solid rgba(46,204,113,0.3); }
+  .status-tag.red { background:rgba(231,76,60,0.15); color:var(--danger); border:1px solid rgba(231,76,60,0.3); }
+  .status-tag.blue { background:rgba(52,152,219,0.15); color:var(--info); border:1px solid rgba(52,152,219,0.3); }
+
+  .note { font-size:11px; color:var(--muted); font-family:'DM Mono',monospace; line-height:1.6; padding:10px; background:rgba(10,22,40,0.5); border-radius:8px; border-left:3px solid var(--border); margin-top:12px; }
+
+  /* FOOTER */
+  footer { text-align:center; padding:24px; font-size:11px; color:var(--muted); font-family:'DM Mono',monospace; border-top:1px solid var(--border); margin-top:32px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🛃</div>
+    <div class="logo-text">
+      <h1>PH Tariff Calculator</h1>
+      <p>Bureau of Customs — CMTA Based</p>
+    </div>
+  </div>
+  <div class="badge">OFFLINE APP</div>
+</header>
+
+<div class="container">
+  <div class="grid">
+
+    <!-- LEFT: INPUT PANEL -->
+    <div>
+      <div class="card">
+        <div class="card-title"><span>📦</span> Goods Information</div>
+
+        <!-- COMMODITY SEARCH -->
+        <div class="field">
+          <label>Search Commodity / HS Code</label>
+          <div class="search-box" style="position:relative">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="commoditySearch" placeholder="e.g. mobile phone, rice, shoes..." autocomplete="off">
+            <div class="suggestions" id="suggestions"></div>
+          </div>
+          <div id="selectedCommodity" style="margin-top:8px;display:none">
+            <div class="rate-badge" id="rateDisplay"></div>
+          </div>
+        </div>
+
+        <div class="input-row">
+          <div class="field">
+            <label>HS Code (Manual)</label>
+            <input type="text" id="hsCode" placeholder="e.g. 8517.12.00" maxlength="12">
+          </div>
+          <div class="field">
+            <label>Import Type</label>
+            <select id="importType">
+              <option value="commercial">Commercial</option>
+              <option value="personal">Personal / Balikbayan</option>
+              <option value="postal">Postal / Courier (De Minimis)</option>
+              <option value="vehicle">Motor Vehicle</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="section-label">Shipment Value & Freight</div>
+
+        <div class="input-row">
+          <div class="field">
+            <label>Invoice Value</label>
+            <input type="number" id="invoiceValue" placeholder="0.00" min="0" step="0.01">
+          </div>
+          <div class="field">
+            <label>Currency</label>
+            <select id="currency">
+              <option value="USD">USD — US Dollar</option>
+              <option value="EUR">EUR — Euro</option>
+              <option value="PHP">PHP — Philippine Peso</option>
+              <option value="CNY">CNY — Chinese Yuan</option>
+              <option value="JPY">JPY — Japanese Yen</option>
+              <option value="GBP">GBP — British Pound</option>
+              <option value="SGD">SGD — Singapore Dollar</option>
+              <option value="KRW">KRW — Korean Won</option>
+              <option value="HKD">HKD — Hong Kong Dollar</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Exchange Rate to PHP (BSP rate)</label>
+          <input type="number" id="exchangeRate" placeholder="e.g. 56.50" value="56.50" min="0" step="0.01">
+          <button class="help-btn" onclick="toggleHelp('helpExchange')">ℹ How is this used?</button>
+          <div class="help-panel" id="helpExchange">
+            <strong>Exchange Rate</strong><br>
+            The BOC uses the <strong>BSP (Bangko Sentral ng Pilipinas)</strong> reference rate at the time of importation. Update this to the current rate.<br>
+            <div class="formula">Transaction Value (PHP) = Invoice Value × Exchange Rate</div>
+            Use the official BSP rate — not black market or remittance rates.
+          </div>
+        </div>
+
+        <div class="input-row">
+          <div class="field">
+            <label>Freight / Shipping Cost (PHP)</label>
+            <input type="number" id="freight" placeholder="0.00" min="0" step="0.01">
+          </div>
+          <div class="field">
+            <label>Insurance (PHP)</label>
+            <input type="number" id="insurance" placeholder="0.00" min="0" step="0.01">
+          </div>
+        </div>
+
+        <button class="help-btn" onclick="toggleHelp('helpCIF')">ℹ Ano ang CIF?</button>
+        <div class="help-panel" id="helpCIF">
+          <strong>CIF — Cost + Insurance + Freight</strong><br>
+          The Philippines uses the <strong>CIF valuation method</strong> as the basis for computing customs duties. This means:<br>
+          <div class="formula">CIF Value = Transaction Value (PHP) + Freight + Insurance</div>
+          <strong>Customs Duty</strong> is then computed based on this CIF Value, not just the invoice price. This is mandated under the <strong>CMTA (Customs Modernization and Tariff Act, RA 10863)</strong>.
+        </div>
+
+        <div class="section-label" style="margin-top:18px">Tariff & Tax Rates</div>
+
+        <div class="input-row">
+          <div class="field">
+            <label>Customs Duty Rate (%)</label>
+            <input type="number" id="dutyRate" placeholder="e.g. 5" min="0" max="100" step="0.5" value="">
+          </div>
+          <div class="field">
+            <label>Excise Tax Rate (%)</label>
+            <input type="number" id="exciseRate" placeholder="0 if none" min="0" max="100" step="0.5" value="0">
+          </div>
+        </div>
+        <div class="field">
+          <label>VAT Rate (%)</label>
+          <input type="number" id="vatRate" value="12" min="0" max="100" step="1" readonly style="opacity:0.7">
+          <button class="help-btn" onclick="toggleHelp('helpVAT')">ℹ Why 12%?</button>
+          <div class="help-panel" id="helpVAT">
+            <strong>Value Added Tax (VAT)</strong><br>
+            All imported goods are subject to <strong>12% VAT</strong> under the National Internal Revenue Code (NIRC), as amended by the TRAIN Law.<br>
+            <div class="formula">VAT Base = CIF + Customs Duty + Excise Tax + Other Charges<br>VAT = VAT Base × 12%</div>
+            The VAT is computed on top of the dutiable value plus all applicable taxes — this is called the <strong>landed cost</strong>.
+          </div>
+        </div>
+
+        <div class="section-label" style="margin-top:4px">Additional Fees</div>
+
+        <div class="input-row">
+          <div class="field">
+            <label>Arrastre (PHP)</label>
+            <input type="number" id="arrastre" placeholder="0.00" min="0" step="0.01" value="0">
+          </div>
+          <div class="field">
+            <label>Wharfage (PHP)</label>
+            <input type="number" id="wharfage" placeholder="0.00" min="0" step="0.01" value="0">
+          </div>
+        </div>
+        <button class="help-btn" onclick="toggleHelp('helpFees')">ℹ Port fees explained</button>
+        <div class="help-panel" id="helpFees">
+          <strong>Port Charges</strong><br>
+          <strong>Arrastre</strong> — fee for handling goods within the port/pier area. Charged per metric ton or per unit.<br>
+          <strong>Wharfage</strong> — fee for use of wharf/pier facilities. Also computed per metric ton.<br>
+          These are collected by the <strong>PPA (Philippine Ports Authority)</strong> or private port operators. They are included in the VAT base computation.<br>
+          <div class="formula">Typical Arrastre: PHP 500–2,000/CBM<br>Typical Wharfage: PHP 50–300/MT</div>
+        </div>
+
+        <button class="calc-btn" onclick="calculate()">⚡ COMPUTE TARIFF</button>
+        <button class="reset-btn" onclick="resetForm()">↺ Reset All Fields</button>
+      </div>
+    </div>
+
+    <!-- RIGHT: RESULTS + REFERENCE -->
+    <div>
+
+      <!-- RESULTS SECTION -->
+      <div class="card results" id="resultsCard">
+        <div class="card-title"><span>📊</span> Computation Results</div>
+
+        <div class="info-row">
+          <div class="info-box">
+            <div class="ib-val" id="res_cif">—</div>
+            <div class="ib-label">CIF Value (PHP)</div>
+          </div>
+          <div class="info-box">
+            <div class="ib-val" id="res_duty">—</div>
+            <div class="ib-label">Customs Duty</div>
+          </div>
+          <div class="info-box">
+            <div class="ib-val" id="res_vat">—</div>
+            <div class="ib-label">VAT</div>
+          </div>
+        </div>
+
+        <div id="resultLines"></div>
+
+        <div class="total-box">
+          <div class="t-label">Total Amount Due to BOC</div>
+          <div class="t-amount" id="totalDue">PHP 0.00</div>
+          <div class="t-sub" id="totalNote">Estimated payable at port of entry</div>
+        </div>
+
+        <button class="breakdown-toggle" onclick="toggleBreakdown()">📋 Show Full Computation Steps</button>
+        <div class="breakdown-content" id="breakdownContent"></div>
+
+        <div class="note" id="importNote"></div>
+      </div>
+
+      <!-- REFERENCE CARD -->
+      <div class="card" style="margin-top:20px">
+        <div class="tabs">
+          <button 
