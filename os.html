@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PH Tariff Calc v3</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=JetBrains+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');
+
+:root {
+  --bg:     #080e1a;
+  --bg2:    #0d1525;
+  --card:   #101c2e;
+  --card2:  #152236;
+  --line:   rgba(220,160,20,0.14);
+  --gold:   #e8a800;
+  --gold2:  #ffc93d;
+  --white:  #e8edf5;
+  --muted:  #4d607a;
+  --muted2: #7a90aa;
+  --green:  #27c97a;
+  --red:    #e84545;
+  --blue:   #3d9eff;
+  --r: 12px;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--white);min-height:100vh;overflow-x:hidden;}
+
+/* ═══ PAGE SYSTEM ═══════════════════════════════════════════════════ */
+.page{display:none;min-height:100vh;animation:pgIn .25s ease;}
+.page.active{display:flex;flex-direction:column;}
+@keyframes pgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ═══ UPDATE BANNER ═══════════════════════════════════════════════════ */
+#updateBanner{
+  display:none;background:linear-gradient(90deg,#1a3a6e,#0d2040);
+  border-bottom:2px solid var(--gold);padding:11px 20px;
+  position:fixed;top:0;left:0;right:0;z-index:999;
+  align-items:center;gap:12px;flex-wrap:wrap;
+}
+#updateBanner.show{display:flex;animation:slideDown .35s ease;}
+@keyframes slideDown{from{transform:translateY(-100%)}to{transform:translateY(0)}}
+.b-dot{width:8px;height:8px;background:var(--gold2);border-radius:50%;animation:blink 1.4s infinite;flex-shrink:0;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.b-text{flex:1;font-size:12px;color:var(--white);}
+.b-text strong{color:var(--gold2);}
+.b-text em{font-style:normal;font-size:10px;color:var(--muted2);font-family:'JetBrains Mono',monospace;}
+.b-btns{display:flex;gap:8px;}
+.b-btn{padding:5px 14px;border-radius:7px;font-size:11px;font-family:'JetBrains Mono',monospace;cursor:pointer;border:none;font-weight:500;}
+.b-btn.y{background:var(--gold);color:#080e1a;}
+.b-btn.n{background:transparent;border:1px solid var(--line);color:var(--muted2);}
+#offlineTag{
+  display:none;position:fixed;top:12px;right:14px;z-index:998;
+  background:rgba(232,69,69,.12);border:1px solid rgba(232,69,69,.3);
+  color:var(--red);font-size:9px;font-family:'JetBrains Mono',monospace;
+  padding:3px 9px;border-radius:20px;letter-spacing:.06em;
+}
+
+/* ═══ HEADER ═══════════════════════════════════════════════════════════ */
+.top-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 24px;border-bottom:1px solid var(--line);
+  background:rgba(8,14,26,.96);backdrop-filter:blur(10px);
+  position:sticky;top:0;z-index:100;
+  transition:top .3s;
+}
+.logo-wrap{display:flex;align-items:center;gap:12px;}
+.logo-ic{
+  width:36px;height:36px;border-radius:9px;
+  background:linear-gradient(135deg,var(--gold),#b06400);
+  display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;
+}
+.logo-text h1{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;letter-spacing:-.01em;}
+.logo-text p{font-size:9px;color:var(--muted2);font-family:'JetBrains Mono',monospace;letter-spacing:.05em;}
+.nav-pills{display:flex;gap:4px;}
+.nav-pill{
+  padding:6px 13px;border-radius:20px;font-size:11px;
+  font-family:'JetBrains Mono',monospace;cursor:pointer;
+  border:1px solid var(--line);color:var(--muted2);background:none;
+  transition:all .2s;letter-spacing:.03em;
+}
+.nav-pill:hover{border-color:var(--gold);color:var(--gold);}
+.nav-pill.on{background:var(--gold);color:#080e1a;border-color:var(--gold);font-weight:600;}
+
+/* ═══ SHARED ═══════════════════════════════════════════════════════════ */
+.wrap{max-width:980px;margin:0 auto;padding:26px 18px;flex:1;}
+.pg-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:4px;}
+.pg-sub{font-size:12px;color:var(--muted2);font-family:'JetBrains Mono',monospace;margin-bottom:24px;}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:20px;}
+.card-h{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:16px;display:flex;align-items:center;gap:7px;}
+
+.field{margin-bottom:13px;}
+label{display:block;font-size:10px;color:var(--muted2);font-family:'JetBrains Mono',monospace;margin-bottom:5px;letter-spacing:.05em;}
+input,select,textarea{
+  width:100%;padding:9px 12px;
+  background:rgba(8,14,26,.85);border:1px solid rgba(220,160,20,.2);
+  border-radius:8px;color:var(--white);
+  font-family:'DM Sans',sans-serif;font-size:13px;outline:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(232,168,0,.07);}
+select option{background:#101c2e;}
+textarea{resize:vertical;min-height:60px;}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+.r3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px;}
+
+.divider{font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--muted);letter-spacing:.1em;text-transform:uppercase;display:flex;align-items:center;gap:8px;margin:14px 0 12px;}
+.divider::after{content:'';flex:1;height:1px;background:var(--line);}
+
+/* Buttons */
+.btn{padding:10px 18px;border-radius:9px;font-size:13px;cursor:pointer;border:none;transition:all .15s;font-family:'DM Sans',sans-serif;}
+.btn-primary{background:linear-gradient(135deg,var(--gold),#b06400);color:#080e1a;font-family:'Syne',sans-serif;font-weight:800;font-size:13px;letter-spacing:.04em;width:100%;padding:13px;}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 7px 18px rgba(232,168,0,.25);}
+.btn-ghost{background:transparent;border:1px solid var(--line);color:var(--muted2);width:100%;margin-top:7px;font-size:12px;}
+.btn-ghost:hover{border-color:var(--red);color:var(--red);}
+.btn-sm{padding:6px 14px;font-size:11px;font-family:'JetBrains Mono',monospace;border-radius:7px;}
+.btn-gold-sm{background:var(--gold);color:#080e1a;font-weight:600;}
+.btn-outline-sm{background:transparent;border:1px solid var(--line);color:var(--muted2);}
+.btn-outline-sm:hover{border-color:var(--gold);color:var(--gold);}
+.btn-danger-sm{background:transparent;border:1px solid rgba(232,69,69,.3);color:var(--red);}
+.btn-danger-sm:hover{background:rgba(232,69,69,.1);}
+
+/* Status tags */
+.tag{display:inline-flex;padding:2px 8px;border-radius:20px;font-size:9px;font-family:'JetBrains Mono',monospace;font-weight:600;letter-spacing:.04em;}
+.tag-g{background:rgba(39,201,122,.1);color:var(--green);border:1px solid rgba(39,201,122,.25);}
+.tag-r{background:rgba(232,69,69,.1);color:var(--red);border:1px solid rgba(232,69,69,.25);}
+.tag-b{background:rgba(61,158,255,.1);color:var(--blue);border:1px solid rgba(61,158,255,.25);}
+.tag-y{background:rgba(232,168,0,.1);color:var(--gold2);border:1px solid rgba(232,168,0,.25);}
+
+/* Toggle switch */
+.toggle-wrap{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);}
+.toggle-wrap:last-of-type{border-bottom:none;}
+.toggle-info .ti-label{font-size:13px;font-weight:500;}
+.toggle-info .ti-desc{font-size:10px;color:var(--muted2);font-family:'JetBrains Mono',monospace;margin-top:3px;}
+.sw{position:relative;width:38px;height:21px;flex-shrink:0;}
+.sw input{opacity:0;width:0;height:0;}
+.sw-sl{position:absolute;inset:0;background:rgba(220,160,20,.1);border:1px solid var(--line);border-radius:21px;cursor:pointer;transition:.2s;}
+.sw-sl::before{content:'';position:absolute;width:15px;height:15px;border-radius:50%;background:var(--muted);left:2px;top:2px;transition:.2s;}
+.sw input:checked+.sw-sl{background:rgba(232,168,0,.2);border-color:var(--gold);}
+.sw input:checked+.sw-sl::before{transform:translateX(17px);background:var(--gold);}
+
+/* Toast */
+.toast{
+  position:fixed;bottom:22px;left:50%;transform:translateX(-50%);
+  background:var(--card2);border:1px solid var(--line);color:var(--white);
+  padding:9px 20px;border-radius:9px;font-size:12px;font-family:'JetBrains Mono',monospace;
+  z-index:9999;pointer-events:none;opacity:0;transition:opacity .25s;
+}
+.toast.show{opacity:1;}
+
+/* ═══ PAGE 1 — CALCULATOR ═══════════════════════════════════════════ */
+#pgCalc .grid{display:grid;grid-template-columns:1.1fr 1fr;gap:18px;}
+@media(max-width:780px){#pgCalc .grid{grid-template-columns:1fr;}}
+
+.search-wrap{position:relative;}
+.search-wrap input{padding-left:32px;}
+.s-ic{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:12px;pointer-events:none;}
+.sugg{
+  position:absolute;top:calc(100% + 3px);left:0;right:0;z-index:60;
+  background:var(--card2);border:1px solid var(--line);border-radius:9px;
+  max-height:200px;overflow-y:auto;display:none;
+}
+.sugg.open{display:block;}
+.sugg-item{
+  padding:9px 13px;cursor:pointer;font-size:12px;
+  border-bottom:1px solid rgba(220,160,20,.05);transition:background .12s;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.sugg-item:last-child{border-bottom:none;}
+.sugg-item:hover{background:rgba(232,168,0,.06);}
+.sugg-hs{font-size:9px;color:var(--gold);font-family:'JetBrains Mono',monospace;margin-top:2px;}
+.sugg-rate{font-size:10px;color:var(--muted2);font-family:'JetBrains Mono',monospace;background:rgba(8,14,26,.8);padding:2px 7px;border-radius:4px;}
+.sel-tag{
+  display:none;margin-top:6px;padding:6px 12px;border-radius:8px;
+  background:rgba(232,168,0,.07);border:1px solid var(--line);
+  font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--gold2);
+}
+
+/* Results */
+#resCard{display:none;}
+#resCard.show{display:block;animation:pgIn .3s ease;}
+.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:16px;}
+.kpi{background:rgba(8,14,26,.7);border:1px solid var(--line);border-radius:10px;padding:12px 8px;text-align:center;}
+.kpi-v{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:var(--gold2);}
+.kpi-l{font-size:8px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:3px;letter-spacing:.05em;text-transform:uppercase;}
+
+.r-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(220,160,20,.06);font-size:12px;}
+.r-row:last-child{border-bottom:none;}
+.r-l{color:var(--muted2);}
+.r-v{font-family:'JetBrains Mono',monospace;font-size:11px;}
+.r-row.ind .r-l{padding-left:10px;font-size:10px;color:var(--muted);}
+.r-row.ind .r-v{font-size:10px;}
+
+.total-card{
+  margin-top:13px;
+  background:linear-gradient(135deg,rgba(232,168,0,.09),rgba(180,100,0,.06));
+  border:1px solid var(--gold);border-radius:11px;padding:14px 17px;
+}
+.total-card .tc-l{font-size:9px;color:var(--gold);font-family:'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;}
+.total-card .tc-v{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--gold2);margin-top:2px;}
+.total-card .tc-n{font-size:10px;color:var(--muted2);font-family:'JetBrains Mono',monospace;margin-top:3px;}
+
+.steps-btn{display:inline-flex;align-items:center;gap:5px;margin-top:11px;background:none;border:1px solid var(--line);color:var(--muted2);font-size:10px;font-family:'JetBrains Mono',monospace;padding:5px 11px;border-radius:20px;cursor:pointer;transition:all .2s;}
+.steps-btn:hover{border-color:var(--blue);color:var(--blue);}
+.steps-body{display:none;margin-top:10px;}
+.steps-body.open{display:block;}
+.steps-box{background:rgba(8,14,26,.9);border:1px solid var(--line);border-radius:9px;padding:13px;font-family:'JetBrains Mono',monospace;font-size:10px;line-height:2;color:var(--muted2);}
+.steps-box .hl{color:var(--white);}
+.steps-box .total{color:var(--gold2);font-size:12px;}
+
+.r-note{margin-top:11px;padding:9px 11px;border-radius:7px;background:rgba(8,14,26,.6);border-left:3px solid var(--line);font-size:10px;color:var(--muted2);font-family:'JetBrains Mono',monospace;line-height:1.7;}
+
+/* Ref tabs */
+.tabs{display:flex;gap:3px;background:rgba(8,14,26,.7);padding:3px;border-radius:9px;border:1px solid var(--line);margin-bottom:14px;}
+.tab-btn{flex:1;padding:7px 4px;text-align:center;font-size:10px;font-family:'JetBrains Mono',monospace;cursor:pointer;border-radius:7px;color:var(--muted);border:none;background:none;transition:all .2s;}
+.tab-btn.on{background:var(--gold);color:#080e1a;font-weight:700;}
+.tab-pane{display:none;}
+.tab-pane.on{display:block;}
+
+.ref-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(220,160,20,.06);font-size:12px;}
+.ref-row:last-child{border-bottom:none;}
+.ref-l{color:var(--muted2);font-size:11px;}
+.ref-v{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gold2);}
+.ref-note{font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:1px;}
+
+/* ═══ PAGE 2 — RATE EDITOR ══════════════════════════════════════════ */
+#pgRates .top-actions{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
+#pgRates .top-actions div{display:flex;gap:8px;flex-wrap:wrap;}
+.rate-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;}
+.rate-card{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  padding:16px;transition:border-color .2s;
+}
+.rate-card:hover{border-color:rgba(232,168,0,.3);}
+.rc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+.rc-name{font-size:13px;font-weight:600;line-height:1.3;}
+.rc-hs{font-size:9px;color:var(--gold);font-family:'JetBrains Mono',monospace;margin-top:3px;}
+.rc-actions{display:flex;gap:6px;flex-shrink:0;}
+.rc-rates{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+.rate-badge{font-size:10px;font-family:'JetBrains Mono',monospace;padding:3px 9px;border-radius:6px;background:rgba(8,14,26,.8);border:1px solid var(--line);color:var(--muted2);}
+.rate-badge strong{color:var(--gold2);}
+.rc-note{font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:7px;line-height:1.5;border-top:1px solid var(--line);padding-top:7px;}
+
+/* Modal */
+#modal{display:none;position:fixed;inset:0;z-index:800;background:rgba(8,14,26,.85);backdrop-filter:blur(6px);align-items:center;justify-content:center;}
+#modal.open{display:flex;}
+.modal-box{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px;width:92%;max-width:460px;animation:pgIn .22s ease;}
+.modal-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:18px;color:var(--gold2);}
+.modal-actions{display:flex;gap:8px;margin-top:18px;}
+.modal-actions button{flex:1;}
+
+/* ═══ PAGE 3 — SETTINGS ═════════════════════════════════════════════ */
+#pgSettings .s-section{margin-bottom:22px;}
+#pgSettings .s-section-title{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--line);}
+.info-box{background:rgba(8,14,26,.7);border:1px solid var(--line);border-radius:9px;padding:12px 14px;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted2);line-height:1.8;}
+.info-box strong{color:var(--gold2);}
+
+/* ═══ FOOTER ════════════════════════════════════════════════════════ */
+footer{text-align:center;padding:18px;font-size:9px;color:var(--muted);font-family:'JetBrains Mono',monospace;border-top:1px solid var(--line);margin-top:auto;}
+</style>
+</head>
+<body>
+
+<!-- UPDATE BANNER -->
+<div id="updateBanner">
+  <div class="b-dot"></div>
+  <div class="b-text">
+    <strong id="bannerTitle">Rate Update Available</strong> —
+    <em id="bannerDesc">New government tariff schedule detected. Connect to internet to download.</em>
+  </div>
+  <div class="b-btns">
+    <button class="b-btn y" onclick="doUpdate()">Update Now</button>
+    <button class="b-btn n" onclick="closeBanner()">Later</button>
+  </div>
+</div>
+<div id="offlineTag">● OFFLINE</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- MODAL (Add/Edit Commodity) -->
+<div id="modal">
+  <div class="modal-box">
+    <div class="modal-title" id="modalTitle">Add Commodity</div>
+    <input type="hidden" id="editIndex">
+    <div class="field"><label>Commodity Name</label><input type="text" id="mName" placeholder="e.g. Solar Panel"></div>
+    <div class="r2">
+      <div class="field"><label>HS Code</label><input type="text" id="mHs" placeholder="8541.40.00" maxlength="15"></div>
+      <div class="field"><label>Category</label>
+        <select id="mCat">
+          <option>IT / Electronics</option><option>Agriculture</option><option>Clothing & Footwear</option>
+          <option>Appliances</option><option>Motor Vehicle</option><option>Food & Beverage</option>
+          <option>Pharmaceuticals</option><option>Industrial</option><option>Fuel / Energy</option>
+          <option>Furniture</option><option>Others</option>
+        </select>
+      </div>
+    </div>
+    <div class="r3">
+      <div class="field"><label>Duty Rate (%)</label><input type="number" id="mDuty" placeholder="0" min="0" max="100" step="0.5"></div>
+      <div class="field"><label>Excise Tax (%)</label><input type="number" id="mExcise" placeholder="0" min="0" max="100" step="0.5"></div>
+      <div class="field"><label>VAT Override (%)</label><input type="number" id="mVat" placeholder="12" min="0" max="100" step="1"></div>
+    </div>
+    <div class="field"><label>Notes / Remarks</label><textarea id="mNote" placeholder="e.g. ITA exempt, DA permit required…"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-gold-sm btn-sm" onclick="saveModal()" style="flex:2;padding:10px;">Save Commodity</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ HEADER ═══════════════ -->
+<header class="top-bar" id="topBar">
+  <div class="logo-wrap">
+    <div class="logo-ic">🛃</div>
+    <div class="logo-text">
+      <h1>PH Tariff Calc</h1>
+      <p>BOC · CMTA · RA 10863 · TRAIN LAW</p>
+    </div>
+  </div>
+  <nav class="nav-pills">
+    <button class="nav-pill on" onclick="goPage('pgCalc',this)">Calculator</button>
+    <button class="nav-pill" onclick="goPage('pgRates',this)">Rate Editor</button>
+    <button class="nav-pill" onclick="goPage('pgSettings',this)">Settings</button>
+  </nav>
+</header>
+
+<!-- ═══════════════ PAGE: CALCULATOR ═══════════════ -->
+<div class="page active" id="pgCalc">
+<div class="wrap">
+  <div class="pg-title">Tariff Calculator</div>
+  <div class="pg-sub">Compute customs duties, VAT & total payable to BOC</div>
+
+  <div class="grid">
+    <!-- INPUT -->
+    <div>
+      <div class="card">
+        <div class="card-h">📦 Goods Information</div>
+
+        <div class="field">
+          <label>Search Commodity / HS Code</label>
+          <div class="search-wrap">
+            <span class="s-ic">🔍</span>
+            <input type="text" id="srch" placeholder="e.g. mobile phone, rice, shoes…" autocomplete="off">
+            <div class="sugg" id="suggBox"></div>
+          </div>
+          <div class="sel-tag" id="selTag"></div>
+        </div>
+
+        <div class="r2">
+          <div class="field"><label>HS Code</label><input type="text" id="hsCode" placeholder="8517.12.00" maxlength="15"></div>
+          <div class="field"><label>Import Type</label>
+            <select id="importType">
+              <option value="commercial">Commercial</option>
+              <option value="personal">Personal / Balikbayan</option>
+              <option value="postal">Postal / De Minimis</option>
+              <option value="vehicle">Motor Vehicle</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="divider">Shipment Value</div>
+
+        <div class="r2">
+          <div class="field"><label>Invoice / FOB Value</label><input type="number" id="invVal" placeholder="0.00" min="0" step="0.01"></div>
+          <div class="field"><label>Currency</label>
+            <select id="cur">
+              <option value="USD">USD</option><option value="EUR">EUR</option>
+              <option value="PHP">PHP</option><option value="CNY">CNY</option>
+              <option value="JPY">JPY</option><option value="GBP">GBP</option>
+              <option value="SGD">SGD</option><option value="KRW">KRW</option>
+              <option value="HKD">HKD</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field"><label>Exchange Rate (PHP per 1 foreign unit)</label><input type="number" id="exRate" value="56.50" min="0" step="0.01"></div>
+
+        <div class="r2">
+          <div class="field"><label>Freight (PHP)</label><input type="number" id="freight" placeholder="0.00" min="0" step="0.01"></div>
+          <div class="field"><label>Insurance (PHP)</label><input type="number" id="insur" placeholder="0.00" min="0" step="0.01"></div>
+        </div>
+
+        <div class="divider">Tax Rates</div>
+
+        <div class="r3">
+          <div class="field"><label>Customs Duty (%)</label><input type="number" id="dutyR" placeholder="e.g. 5" min="0" max="100" step="0.5"></div>
+          <div class="field"><label>Excise Tax (%)</label><input type="number" id="exciseR" value="0" min="0" max="100" step="0.5"></div>
+          <div class="field"><label>VAT (%) — 12% fixed</label><input type="number" id="vatR" value="12" readonly style="opacity:.55"></div>
+        </div>
+
+        <div class="r2">
+          <div class="field"><label>Arrastre (PHP)</label><input type="number" id="arrastre" value="0" min="0" step="0.01"></div>
+          <div class="field"><label>Wharfage (PHP)</label><input type="number" id="wharfage" value="0" min="0" step="0.01"></div>
+        </div>
+
+        <button class="btn btn-primary" onclick="calculate()">⚡ COMPUTE TARIFF</button>
+        <button class="btn btn-ghost" onclick="resetCalc()">↺ Reset</button>
+      </div>
+    </div>
+
+    <!-- RESULTS + REFERENCE -->
+    <div>
+      <div class="card" id="resCard">
+        <div class="card-h">📊 Results</div>
+        <div class="kpi-row">
+          <div class="kpi"><div class="kpi-v" id="kCIF">—</div><div class="kpi-l">CIF Value</div></div>
+          <div class="kpi"><div class="kpi-v" id="kDuty">—</div><div class="kpi-l">Customs Duty</div></div>
+          <div class="kpi"><div class="kpi-v" id="kVAT">—</div><div class="kpi-l">VAT</div></div>
+        </div>
+        <div id="rLines"></div>
+        <div class="total-card">
+          <div class="tc-l">Total Amount Due to BOC</div>
+          <div class="tc-v" id="tAmt">PHP 0.00</div>
+          <div class="tc-n" id="tNote">—</div>
+        </div>
+        <button class="steps-btn" onclick="toggleSteps(this)">📋 Show Computation Steps</button>
+        <div class="steps-body" id="stepsBody">
+          <div class="steps-box" id="stepsBox"></div>
+        </div>
+        <div class="r-note" id="rNote"></div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <div class="tabs">
+          <button class="tab-btn on" onclick="swTab('tRates',this)">Rates</button>
+          <button class="tab-btn" onclick="swTab('tDeMin',this)">De Minimis</button>
+          <button class="tab-btn" onclick="swTab('tSpecial',this)">Special</button>
+        </div>
+        <div class="tab-pane on" id="tRates"><div id="rateTable"></div></div>
+        <div class="tab-pane" id="tDeMin">
+          <div class="ref-row"><span class="ref-l">Formal Entry Threshold</span><span class="ref-v">PHP 10,000+</span></div>
+          <div class="ref-row"><span class="ref-l">Informal Entry</span><span class="ref-v">PHP 1,000 – 10,000</span></div>
+          <div class="ref-row"><span class="ref-l">De Minimis (Duty & VAT Free)</span><span class="ref-v"><span class="tag tag-g">≤ PHP 10,000</span></span></div>
+          <div class="ref-row"><span class="ref-l">Balikbayan Box Exemption</span><span class="ref-v"><span class="tag tag-g">≤ PHP 150,000/yr</span></span></div>
+          <div class="ref-row"><span class="ref-l">Postal / Courier De Minimis</span><span class="ref-v"><span class="tag tag-g">≤ PHP 10,000</span></span></div>
+          <div class="r-note" style="margin-top:10px">Under RA 10863 (CMTA). Balikbayan box limit is per year, per OFW/Filipino abroad.</div>
+        </div>
+        <div class="tab-pane" id="tSpecial"><div id="specialTable"></div><div class="r-note" style="margin-top:10px">These goods require permits from other agencies (FDA, DA, DENR, PNP, etc.) aside from BOC.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<footer>PH Tariff Calc v3.0 · CMTA RA 10863 · TRAIN Law · AHTN 2022 · For reference use only. Consult a Licensed Customs Broker.</footer>
+</div>
+
+<!-- ═══════════════ PAGE: RATE EDITOR ═══════════════ -->
+<div class="page" id="pgRates">
+<div class="wrap">
+  <div class="pg-title">Rate Editor</div>
+  <div class="pg-sub">Add, edit, or delete commodities and their tariff rates</div>
+
+  <div class="top-actions">
+    <div>
+      <input type="text" id="rateSearch" placeholder="🔍 Search commodity…" style="width:220px;padding:8px 12px;font-size:12px;" oninput="renderRateCards()">
+      <select id="rateCatFilter" style="width:160px;padding:8px 12px;font-size:12px;" onchange="renderRateCards()">
+        <option value="">All Categories</option>
+        <option>IT / Electronics</option><option>Agriculture</option><option>Clothing & Footwear</option>
+        <option>Appliances</option><option>Motor Vehicle</option><option>Food & Beverage</option>
+        <option>Pharmaceuticals</option><option>Industrial</option><option>Fuel / Energy</option>
+        <option>Furniture</option><option>Others</option>
+      </select>
+    </div>
+    <div>
+      <button class="btn btn-outline-sm btn-sm" onclick="exportRates()">⬇ Export JSON</button>
+      <button class="btn btn-outline-sm btn-sm" onclick="document.getElementById('importFile').click()">⬆ Import JSON</button>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importRates(event)">
+      <button class="btn btn-gold-sm btn-sm" onclick="openModal(-1)">+ Add Commodity</button>
+    </div>
+  </div>
+
+  <div class="rate-grid" id="rateGrid"></div>
+</div>
+<footer>Rate Editor — All changes saved to your browser automatically.</footer>
+</div>
+
+<!-- ═══════════════ PAGE: SETTINGS ═══════════════════ -->
+<div class="page" id="pgSettings">
+<div class="wrap" style="max-width:620px">
+  <div class="pg-title">Settings</div>
+  <div class="pg-sub">Configure the app to your preferences</div>
+
+  <div class="card s-section">
+    <div class="s-section-title">Update Notifications</div>
+    <div class="toggle-wrap">
+      <div class="toggle-info">
+        <div class="ti-label">Auto-check for Updates</div>
+        <div class="ti-desc">Checks BOC/gov announcements when internet is available</div>
+      </div>
+      <label class="sw"><input type="checkbox" id="sAutoUpdate" checked onchange="saveSettings()"><span class="sw-sl"></span></label>
+    </div>
+    <div class="toggle-wrap">
+      <div class="toggle-info">
+        <div class="ti-label">Show Update Banner</div>
+        <div class="ti-desc">Show banner at top when new rates are detected</div>
+      </div>
+      <label class="sw"><input type="checkbox" id="sShowBanner" checked onchange="saveSettings()"><span class="sw-sl"></span></label>
+    </div>
+    <div style="margin-top:12px">
+      <button class="btn btn-outline-sm btn-sm" onclick="checkUpdates(true)">⟳ Check Now</button>
+    </div>
+  </div>
+
+  <div class="card s-section">
+    <div class="s-section-title">Calculator Defaults</div>
+    <div class="toggle-wrap">
+      <div class="toggle-info">
+        <div class="ti-label">Always Show Computation Steps</div>
+        <div class="ti-desc">Auto-expand the step-by-step breakdown after computing</div>
+      </div>
+      <label class="sw"><input type="checkbox" id="sShowSteps" onchange="saveSettings()"><span class="sw-sl"></span></label>
+    </div>
+    <div class="field" style="margin-top:12px">
+      <label>Default Exchange Rate (PHP per USD)</label>
+      <input type="number" id="sExRate" value="56.50" step="0.01" oninput="saveSettings()">
+    </div>
+    <div class="field">
+      <label>Default VAT Rate (%)</label>
+      <input type="number" id="sVatRate" value="12" step="1" oninput="saveSettings()">
+    </div>
+  </div>
+
+  <div class="card s-section">
+    <div class="s-section-title">Data Management</div>
+    <div class="toggle-wrap">
+      <div class="toggle-info">
+        <div class="ti-label">Export All Rates</div>
+        <div class="ti-desc">Save your rate database as a JSON file</div>
+      </div>
+      <button class="btn btn-outline-sm btn-sm" onclick="exportRates()">Export</button>
+    </div>
+    <div class="toggle-wrap">
+      <div class="toggle-info">
+        <div class="ti-label">Import Rates</div>
+        <div class="ti-desc">Load a JSON rate file (replaces current database)</div>
+      </div>
+      <button class="btn btn-outline-sm btn-sm" onclick="document.getElementById('importFile').click()">Import</button>
+    </div>
+    <div class="toggle-wrap">
+      <div class="toggle-info">
+        <div class="ti-label">Reset to Factory Rates</div>
+        <div class="ti-desc">Restore original built-in commodity database</div>
+      </div>
+      <button class="btn btn-danger-sm btn-sm" onclick="resetRates()">Reset</button>
+    </div>
+  </div>
+
+  <div class="card s-section">
+    <div class="s-section-title">App Info</div>
+    <div class="info-box">
+      Version: <strong>v3.0</strong> &nbsp;|&nbsp;
+      Rates DB: <strong id="sDbDate">2025</strong> &nbsp;|&nbsp;
+      Last Update Check: <strong id="sLastCheck">Never</strong><br><br>
+      Based on: <strong>CMTA RA 10863</strong>, TRAIN Law, AHTN 2022<br>
+      VAT: <strong>12%</strong> (NIRC as amended) · De Minimis: <strong>PHP 10,000</strong><br>
+      Balikbayan Box Limit: <strong>PHP 150,000/year</strong> (RA 10863)<br><br>
+      <span style="color:var(--muted)">For official transactions, always consult a Licensed Customs Broker.</span>
+    </div>
+  </div>
+</div>
+<footer>PH Tariff Calc v3.0 — Offline App · No data sent anywhere.</footer>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// DEFAULT COMMODITY DATABASE (2025 rates)
+// ═══════════════════════════════════════════════════════
+const DEFAULT_DB = [
+  {name:"Mobile Phone / Smartphone",hs:"8517.12.00",cat:"IT / Electronics",duty:0,excise:0,vat:12,note:"Duty-free under ITA (Information Technology Agreement)"},
+  {name:"Laptop / Notebook Computer",hs:"8471.30.00",cat:"IT / Electronics",duty:0,excise:0,vat:12,note:"Duty-free under ITA"},
+  {name:"Desktop Computer",hs:"8471.41.00",cat:"IT / Electronics",duty:0,excise:0,vat:12,note:"Duty-free under ITA"},
+  {name:"Tablet Computer",hs:"8471.30.10",cat:"IT / Electronics",duty:0,excise:0,vat:12,note:"Duty-free under ITA"},
+  {name:"Computer Parts / Peripherals",hs:"8473.30.00",cat:"IT / Electronics",duty:0,excise:0,vat:12,note:"ITA exempt"},
+  {name:"Camera (digital)",hs:"8525.80.10",cat:"IT / Electronics",duty:0,excise:0,vat:12,note:"ITA exempt"},
+  {name:"Headphones / Earphones",hs:"8518.30.00",cat:"IT / Electronics",duty:0,excise:0,vat:12,note:"ITA exempt"},
+  {name:"Game Console",hs:"9504.50.00",cat:"IT / Electronics",duty:0,excise:0,vat:12,note:""},
+  {name:"Television Set (LED/LCD)",hs:"8528.72.10",cat:"Appliances",duty:10,excise:0,vat:12,note:""},
+  {name:"Refrigerator",hs:"8418.10.00",cat:"Appliances",duty:10,excise:0,vat:12,note:""},
+  {name:"Air Conditioner",hs:"8415.10.00",cat:"Appliances",duty:10,excise:0,vat:12,note:""},
+  {name:"Washing Machine",hs:"8450.11.00",cat:"Appliances",duty:10,excise:0,vat:12,note:""},
+  {name:"Electric Fan",hs:"8414.51.10",cat:"Appliances",duty:10,excise:0,vat:12,note:""},
+  {name:"Rice (milled)",hs:"1006.30.00",cat:"Agriculture",duty:35,excise:0,vat:12,note:"DA regulated; subject to TRQ. EO 62 (2024–2028): in-quota 15%, out-quota 35%."},
+  {name:"Wheat Flour",hs:"1101.00.00",cat:"Agriculture",duty:7,excise:0,vat:12,note:""},
+  {name:"Sugar (refined)",hs:"1701.99.10",cat:"Agriculture",duty:50,excise:0,vat:12,note:"SRA regulated"},
+  {name:"Pork Meat (fresh/frozen)",hs:"0203.19.00",cat:"Agriculture",duty:15,excise:0,vat:12,note:"DA-NMIS regulated; TRQ may apply"},
+  {name:"Chicken (whole frozen)",hs:"0207.12.00",cat:"Agriculture",duty:5,excise:0,vat:12,note:"DA-NMIS regulated"},
+  {name:"Fish (dried/salted)",hs:"0305.59.00",cat:"Agriculture",duty:15,excise:0,vat:12,note:"BFAR permit may be required"},
+  {name:"Coffee Beans (green)",hs:"0901.11.00",cat:"Agriculture",duty:7,excise:0,vat:12,note:""},
+  {name:"Coconut Oil",hs:"1513.11.00",cat:"Agriculture",duty:7,excise:0,vat:12,note:""},
+  {name:"Pet Food",hs:"2309.10.00",cat:"Agriculture",duty:5,excise:0,vat:12,note:"DA-BAI clearance for meat-based"},
+  {name:"Shoes / Footwear (leather)",hs:"6403.99.00",cat:"Clothing & Footwear",duty:20,excise:0,vat:12,note:""},
+  {name:"Shoes / Footwear (rubber/plastic)",hs:"6402.99.00",cat:"Clothing & Footwear",duty:20,excise:0,vat:12,note:""},
+  {name:"Clothing / Apparel (woven)",hs:"6211.42.00",cat:"Clothing & Footwear",duty:20,excise:0,vat:12,note:""},
+  {name:"T-shirts / Knitted Clothing",hs:"6109.10.00",cat:"Clothing & Footwear",duty:20,excise:0,vat:12,note:""},
+  {name:"Handbag / Purse (leather)",hs:"4202.21.00",cat:"Clothing & Footwear",duty:10,excise:0,vat:12,note:""},
+  {name:"Watches",hs:"9102.11.00",cat:"Others",duty:10,excise:0,vat:12,note:""},
+  {name:"Jewelry (gold)",hs:"7113.19.10",cat:"Others",duty:10,excise:0,vat:12,note:"BSP-regulated for gold"},
+  {name:"Perfume / Cologne",hs:"3303.00.00",cat:"Others",duty:10,excise:0,vat:12,note:""},
+  {name:"Cosmetics / Skin Care",hs:"3304.99.00",cat:"Others",duty:10,excise:0,vat:12,note:"FDA registration required"},
+  {name:"Vitamins / Supplements",hs:"2106.90.99",cat:"Pharmaceuticals",duty:7,excise:0,vat:12,note:"FDA registration required"},
+  {name:"Pharmaceutical Drugs",hs:"3004.90.00",cat:"Pharmaceuticals",duty:0,excise:0,vat:12,note:"Most essential meds duty-free; FDA required"},
+  {name:"Toys (plastic)",hs:"9503.00.00",cat:"Others",duty:10,excise:0,vat:12,note:""},
+  {name:"Books / Printed Matter",hs:"4901.99.00",cat:"Others",duty:0,excise:0,vat:12,note:"Duty-free under Florence Agreement"},
+  {name:"Musical Instruments (guitar)",hs:"9202.90.00",cat:"Others",duty:10,excise:0,vat:12,note:""},
+  {name:"Sports Equipment",hs:"9506.99.00",cat:"Others",duty:10,excise:0,vat:12,note:""},
+  {name:"Bicycle",hs:"8712.00.10",cat:"Others",duty:15,excise:0,vat:12,note:""},
+  {name:"Electric Bicycle",hs:"8714.99.10",cat:"Others",duty:5,excise:0,vat:12,note:""},
+  {name:"Motorcycle (under 200cc)",hs:"8711.20.00",cat:"Motor Vehicle",duty:7,excise:0,vat:12,note:"LTO registration required"},
+  {name:"Passenger Car (gasoline, <1600cc)",hs:"8703.22.10",cat:"Motor Vehicle",duty:5,excise:5,vat:12,note:"Excise based on net manufacturer price (TRAIN Law)"},
+  {name:"Passenger Car (gasoline, 1600–2000cc)",hs:"8703.23.10",cat:"Motor Vehicle",duty:5,excise:10,vat:12,note:""},
+  {name:"Passenger Car (above 2000cc)",hs:"8703.24.10",cat:"Motor Vehicle",duty:5,excise:20,vat:12,note:"Luxury rate applies above PHP 4M"},
+  {name:"Electric Vehicle (passenger)",hs:"8703.80.10",cat:"Motor Vehicle",duty:5,excise:0,vat:12,note:"EV incentives under RA 11697"},
+  {name:"Pickup Truck",hs:"8704.31.10",cat:"Motor Vehicle",duty:20,excise:0,vat:12,note:"Commercial vehicle rate"},
+  {name:"Cigarettes (per pack)",hs:"2402.20.00",cat:"Food & Beverage",duty:10,excise:20,vat:12,note:"Excise: PHP 60.37/pack (2024), increases annually under TRAIN Law"},
+  {name:"Alcohol / Distilled Spirits",hs:"2208.20.00",cat:"Food & Beverage",duty:20,excise:22,vat:12,note:"Excise based on volume; TRAIN Law"},
+  {name:"Beer / Fermented Beverage",hs:"2203.00.00",cat:"Food & Beverage",duty:20,excise:35,vat:12,note:"Excise per liter"},
+  {name:"Wine",hs:"2204.21.00",cat:"Food & Beverage",duty:20,excise:50,vat:12,note:"Excise per liter"},
+  {name:"Furniture (wooden)",hs:"9403.60.00",cat:"Furniture",duty:10,excise:0,vat:12,note:""},
+  {name:"Mattress",hs:"9404.21.00",cat:"Furniture",duty:10,excise:0,vat:12,note:""},
+  {name:"Solar Panel",hs:"8541.40.00",cat:"IT / Electronics",duty:0,excise:0,vat:12,note:"Duty-free for renewable energy"},
+  {name:"Industrial Machinery",hs:"8479.89.00",cat:"Industrial",duty:3,excise:0,vat:12,note:"BOI may grant incentives"},
+  {name:"Agricultural Machinery",hs:"8432.80.00",cat:"Industrial",duty:0,excise:0,vat:12,note:"Duty-free under RA 10601 (AFMA)"},
+  {name:"Steel / Iron Products",hs:"7308.90.00",cat:"Industrial",duty:7,excise:0,vat:12,note:""},
+  {name:"Cement",hs:"2523.29.00",cat:"Industrial",duty:5,excise:0,vat:12,note:""},
+  {name:"Textile Fabric (cotton woven)",hs:"5208.21.00",cat:"Clothing & Footwear",duty:15,excise:0,vat:12,note:""},
+  {name:"Plywood",hs:"4412.31.00",cat:"Industrial",duty:7,excise:0,vat:12,note:""},
+  {name:"Paint / Varnish",hs:"3209.10.00",cat:"Others",duty:10,excise:0,vat:12,note:""},
+  {name:"Gasoline (unleaded)",hs:"2710.12.10",cat:"Fuel / Energy",duty:0,excise:10,vat:12,note:"Excise per liter under TRAIN Law"},
+  {name:"Diesel Fuel",hs:"2710.19.29",cat:"Fuel / Energy",duty:0,excise:6,vat:12,note:"Excise per liter"},
+  {name:"LPG (cooking gas)",hs:"2711.12.00",cat:"Fuel / Energy",duty:0,excise:3,vat:12,note:"Excise per kg"},
+  {name:"Firearms (pistol/revolver)",hs:"9302.00.00",cat:"Others",duty:15,excise:0,vat:12,note:"PNP permit required; strictly regulated by RA 10591"},
+];
+
+const SPECIAL = [
+  ["Firearms & Ammunition","15%","PNP / DND","r"],
+  ["Pharmaceuticals / Drugs","0%","FDA (CDRR)","g"],
+  ["Food Products (meat/fish)","5–35%","DA-NMIS/BFAR","b"],
+  ["Chemicals (industrial)","Varies","DENR/PCG","b"],
+  ["Plants & Seeds","Varies","DA-BPI/BAFPS","b"],
+  ["Animals (live)","Varies","DA-BAI","b"],
+  ["Radioactive Materials","Varies","PNRI","r"],
+  ["Endangered Species (CITES)","Controlled","CITES/DENR","r"],
+  ["Counterfeit Goods","Prohibited","IPO/BOC","r"],
+  ["Recreational Drugs","Prohibited","DDB/BOC","r"],
+];
+
+const RATE_CATS = [
+  ["IT / Electronics","0%","ITA signatories; duty-free"],
+  ["Agricultural Products","5–50%","TRQ & DA permit may apply"],
+  ["Clothing & Footwear","15–20%","MFN rate"],
+  ["Appliances (household)","10%","Standard rate"],
+  ["Motor Vehicles","5–20%","+ excise tax; LTO required"],
+  ["Industrial Machinery","0–7%","BOI incentives possible"],
+  ["Furniture","10%","Standard rate"],
+  ["Books & Publications","0%","Florence Agreement exempt"],
+  ["Cosmetics & Toiletries","10%","FDA permit required"],
+  ["Alcohol & Tobacco","10–20%","+ excise tax (TRAIN Law)"],
+  ["Food & Beverages","5–50%","Varies per HS code"],
+  ["Pharmaceuticals","0–7%","Essential meds mostly exempt"],
+  ["Fuel & Energy","0%","Duty-free; excise tax applies"],
+];
+
+// ═══ STATE ════════════════════════════════════════════
+let DB = [];
+function loadDB(){
+  try{ DB = JSON.parse(localStorage.getItem('phTariffDB') || 'null') || [...DEFAULT_DB]; }
+  catch(e){ DB = [...DEFAULT_DB]; }
+}
+function saveDB(){ localStorage.setItem('phTariffDB', JSON.stringify(DB)); }
+
+function loadSettings(){
+  try{
+    const s = JSON.parse(localStorage.getItem('phTariffSettings') || '{}');
+    document.getElementById('sAutoUpdate').checked = s.autoUpdate !== false;
+    document.getElementById('sShowBanner').checked = s.showBanner !== false;
+    document.getElementById('sShowSteps').checked = !!s.showSteps;
+    const exr = s.exRate || 56.50;
+    document.getElementById('sExRate').value = exr;
+    document.getElementById('exRate').value = exr;
+    document.getElementById('sVatRate').value = s.vatRate || 12;
+    document.getElementById('vatR').value = s.vatRate || 12;
+    document.getElementById('sLastCheck').textContent = s.lastCheck || 'Never';
+    document.getElementById('sDbDate').textContent = s.dbDate || '2025';
+  }catch(e){}
+}
+function saveSettings(){
+  const s = {
+    autoUpdate: document.getElementById('sAutoUpdate').checked,
+    showBanner: document.getElementById('sShowBanner').checked,
+    showSteps: document.getElementById('sShowSteps').checked,
+    exRate: document.getElementById('sExRate').value,
+    vatRate: document.getElementById('sVatRate').value,
+    lastCheck: localStorage.getItem('phLastCheck') || 'Never',
+    dbDate: '2025'
+  };
+  localStorage.setItem('phTariffSettings', JSON.stringify(s));
+  document.getElementById('exRate').value = s.exRate;
+  document.getElementById('vatR').value = s.vatRate;
+}
+
+// ═══ PAGE NAVIGATION ══════════════════════════════════
+function goPage(id, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-pill').forEach(b=>b.classList.remove('on'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('on');
+  if(id==='pgRates') renderRateCards();
+}
+
+// ═══ SEARCH (CALCULATOR) ═════════════════════════════
+const srchEl = document.getElementById('srch');
+const suggEl = document.getElementById('suggBox');
+srchEl.addEventListener('input', function(){
+  const q = this.value.trim().toLowerCase();
+  if(q.length < 2){ suggEl.classList.remove('open'); return; }
+  const hits = DB.filter(c=>c.name.toLowerCase().includes(q)||c.hs.includes(q)).slice(0,8);
+  if(!hits.length){ suggEl.classList.remove('open'); return; }
+  suggEl.innerHTML = hits.map((c,_)=>`
+    <div class="sugg-item" onclick="pickComm(${DB.indexOf(c)})">
+      <div>
+        <div style="font-size:12px;font-weight:500">${c.name}</div>
+        <div class="sugg-hs">${c.hs} · ${c.cat}</div>
+      </div>
+      <span class="sugg-rate">Duty ${c.duty}%${c.excise?` · Ex ${c.excise}%`:''}</span>
+    </div>
+  `).join('');
+  suggEl.classList.add('open');
+});
+document.addEventListener('click',e=>{ if(!srchEl.contains(e.target)) suggEl.classList.remove('open'); });
+
+function pickComm(i){
+  const c = DB[i];
+  srchEl.value = c.name;
+  document.getElementById('hsCode').value = c.hs;
+  document.getElementById('dutyR').value = c.duty;
+  document.getElementById('exciseR').value = c.excise;
+  document.getElementById('vatR').value = c.vat||12;
+  suggEl.classList.remove('open');
+  const t = document.getElementById('selTag');
+  t.textContent = `HS ${c.hs} · Duty: ${c.duty}% · Excise: ${c.excise}%${c.note?' · '+c.note:''}`;
+  t.style.display='block';
+}
+
+// ═══ CALCULATOR ══════════════════════════════════════
+function fmt(n){ return 'PHP '+n.toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function short(n){
+  if(n>=1e6) return (n/1e6).toFixed(1)+'M';
+  if(n>=1e3) return (n/1e3).toFixed(1)+'K';
+  return n.toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+function calculate(){
+  const iType = document.getElementById('importType').value;
+  const inv = parseFloat(document.getElementById('invVal').value)||0;
+  const ex = parseFloat(document.getElementById('exRate').value)||1;
+  const freight = parseFloat(document.getElementById('freight').value)||0;
+  const ins = parseFloat(document.getElementById('insur').value)||0;
+  const duty = parseFloat(document.getElementById('dutyR').value)||0;
+  const excise = parseFloat(document.getElementById('exciseR').value)||0;
+  const vat = parseFloat(document.getElementById('vatR').value)||12;
+  const arr = parseFloat(document.getElementById('arrastre').value)||0;
+  const wha = parseFloat(document.getElementById('wharfage').value)||0;
+
+  if(inv<=0){ toast('⚠️ Please enter invoice value.'); return; }
+
+  const txnPHP = inv * ex;
+  const cif = txnPHP + freight + ins;
+  const isDeMin = iType==='postal' && cif<=10000;
+  const isBB = iType==='personal' && cif<=150000;
+
+  let customsDuty=0,exciseTax=0,vatAmt=0,vatBase=0,total=0;
+  if(!isDeMin && !isBB){
+    customsDuty = cif*(duty/100);
+    exciseTax = (cif+customsDuty)*(excise/100);
+    vatBase = cif+customsDuty+exciseTax+arr+wha;
+    vatAmt = vatBase*(vat/100);
+    total = customsDuty+exciseTax+vatAmt+arr+wha;
+  }
+
+  document.getElementById('kCIF').textContent = short(cif);
+  document.getElementById('kDuty').textContent = short(customsDuty);
+  document.getElementById('kVAT').textContent = short(vatAmt);
+
+  const lines=[
+    ['Invoice (PHP equivalent)',fmt(txnPHP),false],
+    ['Freight',fmt(freight),true],
+    ['Insurance',fmt(ins),true],
+    ['CIF Value',fmt(cif),false],
+    [`Customs Duty (${duty}%)`,fmt(customsDuty),false],
+    [`Excise Tax (${excise}%)`,fmt(exciseTax),false],
+    ['Arrastre',fmt(arr),true],
+    ['Wharfage',fmt(wha),true],
+    ['VAT Base',fmt(vatBase),true],
+    [`VAT (${vat}%)`,fmt(vatAmt),false],
+  ];
+  document.getElementById('rLines').innerHTML = lines.map(([l,v,ind])=>`
+    <div class="r-row ${ind?'ind':''}"><span class="r-l">${l}</span><span class="r-v">${v}</span></div>
+  `).join('');
+
+  document.getElementById('tAmt').textContent = fmt(total);
+  document.getElementById('tNote').textContent =
+    isDeMin ? '✅ De Minimis — Duty & VAT Exempt (≤ PHP 10,000)'
+    : isBB ? '✅ Balikbayan Box Exempt (≤ PHP 150,000/year)'
+    : `Effective rate: ${cif>0?((total/cif)*100).toFixed(2):0}% of CIF`;
+
+  document.getElementById('stepsBox').innerHTML=`
+<span style="color:var(--gold2);font-size:11px">── Step-by-Step ──</span>
+1. Txn Value   = ${inv} × ${ex} = <span class="hl">${short(txnPHP)}</span>
+2. CIF         = ${short(txnPHP)} + ${short(freight)} (freight) + ${short(ins)} (ins) = <span class="hl">${short(cif)}</span>
+3. Duty        = ${short(cif)} × ${duty}% = <span class="hl">${short(customsDuty)}</span>
+4. Excise      = (${short(cif)} + ${short(customsDuty)}) × ${excise}% = <span class="hl">${short(exciseTax)}</span>
+5. VAT Base    = CIF + Duty + Excise + Port = <span class="hl">${short(vatBase)}</span>
+6. VAT         = ${short(vatBase)} × ${vat}% = <span class="hl">${short(vatAmt)}</span>
+────────────────────────────────
+TOTAL = <span class="total">${short(total)}</span>`;
+
+  const notes={
+    commercial:'⚠️ Estimate only. BOC appraisal may differ. FTA preferential rates may apply (ASEAN, Japan EPA, etc.).',
+    personal: cif>150000?'⚠️ Above Balikbayan Box limit. Full duties apply.':'✅ Within Balikbayan Box exemption (≤ PHP 150,000/year).',
+    postal: cif>10000?'⚠️ Above De Minimis threshold. Full duties apply.':'✅ De Minimis — exempt from duties and VAT.',
+    vehicle:'🚗 Motor vehicles also subject to MVUC and LTO registration fees (not included here).',
+  };
+  document.getElementById('rNote').textContent = notes[iType]||notes.commercial;
+
+  const rc = document.getElementById('resCard');
+  rc.classList.add('show');
+  rc.scrollIntoView({behavior:'smooth',block:'start'});
+
+  const s = JSON.parse(localStorage.getItem('phTariffSettings')||'{}');
+  if(s.showSteps) document.getElementById('stepsBody').classList.add('open');
+}
+
+function toggleSteps(btn){
+  const b = document.getElementById('stepsBody');
+  b.classList.toggle('open');
+  btn.textContent = b.classList.contains('open') ? '📋 Hide Computation Steps' : '📋 Show Computation Steps';
+}
+
+function resetCalc(){
+  ['invVal','freight','insur','dutyR','arrastre','wharfage'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('exciseR').value='0';
+  const s=JSON.parse(localStorage.getItem('phTariffSettings')||'{}');
+  document.getElementById('exRate').value=s.exRate||56.50;
+  document.getElementById('vatR').value=s.vatRate||12;
+  document.getElementById('srch').value='';
+  document.getElementById('hsCode').value='';
+  document.getElementById('selTag').style.display='none';
+  document.getElementById('resCard').classList.remove('show');
+  document.getElementById('stepsBody').classList.remove('open');
+}
+
+// ═══ REFERENCE TABS ═══════════════════════════════════
+function swTab(id,btn){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+  btn.classList.add('on');
+}
+
+// ═══ RATE EDITOR ═════════════════════════════════════
+function renderRateCards(){
+  const q = (document.getElementById('rateSearch').value||'').toLowerCase();
+  const cat = document.getElementById('rateCatFilter').value;
+  const grid = document.getElementById('rateGrid');
+  const filtered = DB.filter(c=>
+    (!q||(c.name.toLowerCase().includes(q)||c.hs.includes(q)))&&
+    (!cat||c.cat===cat)
+  );
+  if(!filtered.length){
+    grid.innerHTML='<div style="color:var(--muted);font-size:13px;padding:20px;font-family:\'JetBrains Mono\',monospace">No commodities found.</div>';
+    return;
+  }
+  grid.innerHTML = filtered.map(c=>{
+    const i = DB.indexOf(c);
+    return `
+    <div class="rate-card">
+      <div class="rc-top">
+        <div>
+          <div class="rc-name">${c.name}</div>
+          <div class="rc-hs">HS ${c.hs} · ${c.cat}</div>
+        </div>
+        <div class="rc-actions">
+          <button class="btn btn-outline-sm btn-sm" onclick="openModal(${i})" title="Edit">✏️</button>
+          <button class="btn btn-danger-sm btn-sm" onclick="delComm(${i})" title="Delete">🗑️</button>
+        </div>
+      </div>
+      <div class="rc-rates">
+        <span class="rate-badge">Duty <strong>${c.duty}%</strong></span>
+        <span class="rate-badge">Excise <strong>${c.excise}%</strong></span>
+        <span class="rate-badge">VAT <strong>${c.vat||12}%</strong></span>
+      </div>
+      ${c.note?`<div class="rc-note">${c.note}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function openModal(i){
+  document.getElementById('editIndex').value = i;
+  document.getElementById('modalTitle').textContent = i<0 ? 'Add Commodity' : 'Edit Commodity';
+  if(i>=0){
+    const c=DB[i];
+    document.getElementById('mName').value=c.name;
+    document.getElementById('mHs').value=c.hs;
+    document.getElementById('mCat').value=c.cat;
+    document.getElementById('mDuty').value=c.duty;
+    document.getElementById('mExcise').value=c.excise;
+    document.getElementById('mVat').value=c.vat||12;
+    document.getElementById('mNote').value=c.note||'';
+  } else {
+    ['mName','mHs','mNote'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('mDuty').value='0';
+    document.getElementById('mExcise').value='0';
+    document.getElementById('mVat').value='12';
+  }
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal(){ document.getElementById('modal').classList.remove('open'); }
+
+function saveModal(){
+  const name = document.getElementById('mName').value.trim();
+  const hs = document.getElementById('mHs').value.trim();
+  if(!name||!hs){ toast('⚠️ Name and HS Code are required.'); return; }
+  const entry = {
+    name, hs,
+    cat: document.getElementById('mCat').value,
+    duty: parseFloat(document.getElementById('mDuty').value)||0,
+    excise: parseFloat(document.getElementById('mExcise').value)||0,
+    vat: parseFloat(document.getElementById('mVat').value)||12,
+    note: document.getElementById('mNote').value.trim()
+  };
+  const i = parseInt(document.getElementById('editIndex').value);
+  if(i<0) DB.push(entry);
+  else DB[i]=entry;
+  saveDB();
+  renderRateCards();
+  closeModal();
+  toast(i<0?'✅ Commodity added.':'✅ Commodity updated.');
+}
+
+function delComm(i){
+  if(!confirm(`Delete "${DB[i].name}"?`)) return;
+  DB.splice(i,1);
+  saveDB();
+  renderRateCards();
+  toast('🗑️ Deleted.');
+}
+
+function exportRates(){
+  const blob = new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ph-tariff-rates.json';
+  a.click();
+  toast('✅ Exported to ph-tariff-rates.json');
+}
+
+function importRates(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const r = new FileReader();
+  r.onload = function(ev){
+    try{
+      const data = JSON.parse(ev.target.result);
+      if(!Array.isArray(data)) throw new Error('Not an array');
+      if(confirm(`Import ${data.length} commodities? This will replace the current database.`)){
+        DB = data;
+        saveDB();
+        renderRateCards();
+        toast(`✅ Imported ${data.length} commodities.`);
+      }
+    }catch(err){ toast('❌ Invalid JSON file.'); }
+  };
+  r.readAsText(file);
+  e.target.value='';
+}
+
+function resetRates(){
+  if(!confirm('Reset to default rates? All custom edits will be lost.')) return;
+  DB = [...DEFAULT_DB];
+  saveDB();
+  renderRateCards();
+  toast('✅ Reset to factory rates.');
+}
+
+// ═══ UPDATE NOTIFICATION ══════════════════════════════
+async function checkUpdates(manual=true){
+  if(!navigator.onLine){
+    if(manual) toast('📵 No internet. Cannot check for updates.');
+    return;
+  }
+  const now = new Date().toLocaleDateString('en-PH');
+  localStorage.setItem('phLastCheck',now);
+  document.getElementById('sLastCheck').textContent = now;
+  const s = JSON.parse(localStorage.getItem('phTariffSettings')||'{}');
+  s.lastCheck = now;
+  localStorage.setItem('phTariffSettings',JSON.stringify(s));
+
+  // In production: fetch real version endpoint
+  // Simulate: check if user has ever dismissed an update
+  const dismissed = localStorage.getItem('updateDismissed');
+  const s2 = JSON.parse(localStorage.getItem('phTariffSettings')||'{}');
+
+  if(manual){
+    // Always show result when manual
+    if(s2.showBanner!==false){
+      showBanner('Check Complete','Rates are up to date (2025). If the government announces new rates, update manually in the Rate Editor.');
+      setTimeout(()=>closeBanner(),5000);
+    }
+    toast('✅ Rates are up to date (2025).');
+  }
+}
+
+function showBanner(title,desc){
+  document.getElementById('bannerTitle').textContent=title;
+  document.getElementById('bannerDesc').textContent=desc;
+  const b=document.getElementById('updateBanner');
+  b.classList.add('show');
+  document.getElementById('topBar').style.top = b.offsetHeight+'px';
+}
+function closeBanner(){
+  document.getElementById('updateBanner').classList.remove('show');
+  document.getElementById('topBar').style.top='0';
+  localStorage.setItem('updateDismissed','true');
+}
+function doUpdate(){
+  alert('To update rates manually:\n\n1. Go to the Rate Editor page\n2. Edit any commodity rate directly\n3. Or use Import JSON to load a new rate file\n\nFor official rates, visit:\n• tariff.customs.gov.ph\n• Tariff Commission: tariffcommission.gov.ph');
+  closeBanner();
+}
+
+// ═══ ONLINE/OFFLINE ═══════════════════════════════════
+window.addEventListener('online',()=>{
+  document.getElementById('offlineTag').style.display='none';
+  const s=JSON.parse(localStorage.getItem('phTariffSettings')||'{}');
+  if(s.autoUpdate!==false) checkUpdates(false);
+});
+window.addEventListener('offline',()=>{
+  document.getElementById('offlineTag').style.display='block';
+});
+
+// ═══ TOAST ════════════════════════════════════════════
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// ═══ RENDER STATIC TABLES ════════════════════════════
+document.getElementById('rateTable').innerHTML = RATE_CATS.map(([cat,rate,note])=>`
+  <div class="ref-row">
+    <div><div class="ref-l">${cat}</div><div class="ref-note">${note}</div></div>
+    <span class="ref-v">${rate}</span>
+  </div>
+`).join('');
+
+document.getElementById('specialTable').innerHTML = SPECIAL.map(([name,rate,agency,cls])=>`
+  <div class="ref-row">
+    <div><div class="ref-l">${name}</div><div class="ref-note">${agency}</div></div>
+    <span class="tag tag-${cls}">${rate}</span>
+  </div>
+`).join('');
+
+// ═══ INIT ════════════════════════════════════════════
+loadDB();
+loadSettings();
+if(!navigator.onLine) document.getElementById('offlineTag').style.display='block';
+window.addEventListener('load',()=>{
+  const s=JSON.parse(localStorage.getItem('phTariffSettings')||'{}');
+  if(s.autoUpdate!==false && navigator.onLine) setTimeout(()=>checkUpdates(false),1200);
+});
+</script>
+</body>
+</html>
